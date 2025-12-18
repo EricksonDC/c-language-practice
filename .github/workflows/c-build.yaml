@@ -1,0 +1,45 @@
+name: Basic C CI + AI PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  # 1. Basic compile check
+  c-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install GCC & clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc clang-format
+
+      - name: Compile all C files (warning-only check)
+        run: |
+          for file in *.c; do
+            echo "Compiling $file"
+            gcc -Wall -Wextra -Werror -std=c11 "$file"
+          done
+
+      - name: Check formatting (clang-format)
+        run: |
+          clang-format --dry-run --Werror *.c *.h || true
+          echo "Formatting check done (non-blocking)"
+
+  # 2. AI-assisted PR review (comments only)
+  copilot-pr-review:
+    needs: c-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copilot PR Review
+        uses: github/copilot-pr-review@latest
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
